@@ -8,6 +8,22 @@ other directly. Each phase corresponds to one or more Epics; see the Epic
 issues for the authoritative, up-to-date breakdown into implementable
 Issues — this document is the narrative overview.
 
+**Delivery strategy — walking skeleton.** The phase list below is organized
+by architectural layer (foundation → extraction → TM/glossary → local
+models → routing → validation → incremental → generation → CLI → benchmark
+→ scale → future), which is a sound engineering decomposition but means no
+end-user-visible result — an actual installable translated mod — would
+otherwise exist until Phase 11 is complete. **Phase 1.5** deliberately
+breaks that: it pulls a minimal-scope slice of Phases 2, 6, 8, and 11
+forward into one thin, fully end-to-end pass (single mod, `Keyed`-only,
+one provider, placeholder-only validation, single-mod output) so a real
+installable mod exists almost immediately after the foundation lands.
+Every later phase then broadens or hardens one stage of that already-working
+pipeline instead of building components in isolation with nothing runnable
+until late. See GitHub Epic "Walking Skeleton — First Installable Mod"
+(#71) for the concrete issues, and the per-Epic "Sequencing note" sections
+added to Epics 1–6, 8, and 9 for how each phase's issues relate to it.
+
 ## Phase 0 — Research & architecture (this session)
 
 Repository inspection, RimWorld 1.6 localization research, local/remote
@@ -23,6 +39,33 @@ structure, config loading, logging, error handling conventions, CI
 scaffolding, and the CLI entry point shape (commands registered but mostly
 stubbed). Nothing here does real extraction or translation yet — it's the
 scaffolding every later phase builds on.
+
+## Phase 1.5 — Walking skeleton (first installable mod)
+
+A thin, fully end-to-end pass through the whole architecture, proven by
+installing the result in a real RimWorld 1.6 instance, before any phase
+below is built out to its full scope:
+
+1. Minimal mod scan (single hardcoded local test mod, not full Workshop
+   discovery — that's Phase 2's job).
+2. Minimal extraction (`Keyed/` only, not `DefInjected`/`Strings` yet —
+   Phase 2's job).
+3. A trivial pass-through/deterministic-transform provider, so the first
+   proof doesn't depend on live local-model infrastructure (GPU/Ollama) —
+   followed immediately by a fast-follow swapping in a real local provider
+   (TranslateGemma via Ollama, pulled forward from Phase 6).
+4. Minimal validation (placeholder-preservation check only, pulled forward
+   from Phase 8; the full gate set is still Phase 8's job).
+5. Minimal generation (single mod, `Keyed`-only output, basic `About.xml`,
+   pulled forward from Phase 11; multi-mod namespacing is still Phase 11's
+   job).
+6. Real-game proof: install the generated mod in RimWorld 1.6 and confirm
+   translated text is visible.
+
+No new architecture is introduced here, and nothing built in this phase is
+throwaway — each piece is the literal starting point the corresponding
+later phase broadens. Tracked as GitHub Epic #71, with its critical-path
+issues (in Epics 1, 2, 4, 6, 8) tagged `walking-skeleton`.
 
 ## Phase 2 — RimWorld localization extraction
 
@@ -130,6 +173,13 @@ accidentally designed in a way that forecloses it later.
 
 ## Sequencing notes
 
+- Phase 1.5 (walking skeleton) should run immediately after Phase 1 and
+  before deep work on Phases 2–12. It is a strongly recommended build-order
+  prerequisite, not a hard blocker: it pulls forward the minimal-scope
+  slice of a handful of issues from Phases 2, 6, 8, and 11 (tagged
+  `walking-skeleton` in GitHub) to prove the pipeline shape and produce a
+  real installable mod early. Those same issues' full acceptance criteria
+  remain the responsibility of their home phase.
 - Phases 2–3 must land before 4–9 can be meaningfully tested end-to-end
   (they need real extracted strings to operate on), but Phase 4's schema
   design and Phase 6's provider abstraction can be designed/started in

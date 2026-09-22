@@ -381,7 +381,31 @@ ST_Russian_Translation/
   support is a possible later enhancement if the config-table approach
   proves insufficient at 180-mod scale.
 
-## 13. Key design decisions (summary)
+## 13. Delivery strategy: walking skeleton
+
+§2's component breakdown is organized by architectural layer (extraction →
+TM/glossary → providers → routing → validation → generation), which is the
+right way to *design* the system but the wrong way to *sequence its
+delivery*: built strictly layer-by-layer, no end-user-visible result — an
+actual installable translated mod — would exist until the generation layer
+(§11) is complete, which itself depends on every layer before it.
+
+To avoid that, implementation is sequenced as a **walking skeleton**: a
+deliberately thin, fully end-to-end slice through every layer — one mod,
+`Keyed`-only extraction, a trivial pass-through provider (then a real one),
+placeholder-only validation, single-mod generation — is built first and
+proven by installing the result in a real RimWorld instance. Every
+subsequent unit of work then broadens or hardens exactly one stage of that
+already-working path (fuller extraction, persistent TM, more providers,
+escalation routing, the full validation gate set, multi-mod namespacing)
+rather than being built in isolation with nothing runnable until late.
+Concretely: GitHub Epic "Walking Skeleton — First Installable Mod" pulls a
+minimal-scope version of a handful of issues forward from the extraction,
+local-model, validation, and generation Epics; those issues' full scope
+remains their home Epic's responsibility. See
+`docs/IMPLEMENTATION_PLAN.md`'s "Phase 1.5" for the concrete sequencing.
+
+## 14. Key design decisions (summary)
 
 | Decision | Rationale |
 |---|---|
@@ -392,3 +416,4 @@ ST_Russian_Translation/
 | Hard validation gates before TM acceptance | A broken placeholder crashes/corrupts in-game formatting — never a matter of translation "quality," always a hard fail. |
 | Semantic-type context in prompts | RimWorld's Def-type variety (research vs. medical vs. item vs. thought vs. trait vs. quest) genuinely changes what a correct translation looks like; blind string-in-string-out translation would systematically mistranslate ambiguous short labels. |
 | Never modify source mods | Product requirement; also the only approach consistent with how RimWorld's `loadAfter` merge mechanism is designed to be used (confirmed standard community pattern). |
+| Walking-skeleton delivery sequencing | Layer-by-layer implementation would produce nothing installable until the generation layer is complete; a thin end-to-end slice built first, then broadened, surfaces integration risk early and gives every later Epic something real to extend. |
