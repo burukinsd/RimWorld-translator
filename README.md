@@ -18,10 +18,14 @@ RimWorld Mods → scan → extract EN → diff (TM + existing RU) → glossary
 
 ## Status
 
-**Planning stage.** No production code has been implemented yet. The full
-architecture, RimWorld 1.6 localization research, local/remote translation
-model research, and phased implementation roadmap are documented in
-[`docs/`](docs/), and the implementation plan is tracked as GitHub Issues.
+**Foundation stage (Epic #1).** The project skeleton — package layout,
+config loading, logging/error conventions, the `rimtrans` CLI (all
+subcommands registered but stubbed), CI, and the shared core interfaces —
+is in place; no real extraction/translation/validation/generation logic
+exists yet (that's Epic #2 onward). The full architecture, RimWorld 1.6
+localization research, local/remote translation model research, and
+phased implementation roadmap are documented in [`docs/`](docs/), and the
+implementation plan is tracked as GitHub Issues.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system design, component
   breakdown, Translation Memory schema, hybrid routing strategy, validation
@@ -70,6 +74,25 @@ rimtrans glossary      rimtrans benchmark
 See `docs/ARCHITECTURE.md` §10 for details, including the planned dry-run
 mode (translation-memory reuse, local/remote work split, token/cost
 estimates).
+
+## Development
+
+Requires Python 3.11+.
+
+```sh
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+rimtrans --help                          # CLI, all commands stubbed for now
+rimtrans --config config/example.yaml scan
+
+ruff check .                             # lint
+mypy                                      # type-check
+pytest                                    # test
+```
+
+See [`docs/adr/`](docs/adr/) for the toolchain, logging/error-handling, and
+core-interface decisions this scaffolding is built on.
 
 ## Contributing
 
