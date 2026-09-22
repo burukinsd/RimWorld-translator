@@ -1,0 +1,51 @@
+# Example rimtrans config file.
+#
+# Load with: rimtrans --config config/example.yaml <command>
+# Schema: src/rimtrans/config/schema.py (RimTransConfig)
+
+# Translation Memory (Epic #3) — persistent SQLite state.
+translation_memory:
+  path: ./data/translation_memory.sqlite3
+
+# Glossary sources (Epic #3). Each entry is a path to a glossary file;
+# format/layering (global/mod/semantic-type) is defined by that Epic.
+glossary:
+  sources:
+    - ./glossary/global.yaml
+
+# Registered translation providers (Epic #4 local, Epic #5 remote).
+# The router (Epic #5) looks providers up by `id`; `kind` must be
+# 'local' or 'remote'.
+providers:
+  - id: local:ollama:translategemma-12b
+    kind: local
+    model: translategemma:12b
+    endpoint: http://localhost:11434
+    timeout_seconds: 120
+    max_retries: 2
+
+  - id: remote:anthropic:claude-sonnet
+    kind: remote
+    model: claude-sonnet-5
+    timeout_seconds: 60
+    max_retries: 1
+
+# Translation Router escalation policy (ARCHITECTURE.md §4).
+router_policy:
+  max_local_retries: 2
+  always_escalate_semantic_types:
+    - quest_text
+  always_review_semantic_types: []
+  low_confidence_escalation: true
+
+# Semantic-context table overrides/extensions (ARCHITECTURE.md §7).
+# Exactly one of `def_type` / `keyed_key_pattern` must be set per entry.
+semantic_type_overrides:
+  - def_type: ResearchProjectDef
+    semantic_type: research_project
+    context_hint: >-
+      This is a research project name/description in a colony-sim tech tree.
+  - keyed_key_pattern: "^Letter.*"
+    semantic_type: letter_message
+    context_hint: >-
+      This is a UI notification/letter shown to the player; keep concise.
