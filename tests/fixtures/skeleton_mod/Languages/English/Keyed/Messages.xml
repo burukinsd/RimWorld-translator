@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LanguageData>
+
+  <!-- EN: Jump to location -->
+  <JumpToLocation>Jump to location</JumpToLocation>
+
+  <!-- EN: {0} successfully recruited {1} ({2} chance). -->
+  <RecruitSuccess>{0} successfully recruited {1} ({2} chance).</RecruitSuccess>
+
+  <!-- EN: {PAWN_nameDef} has arrived. -->
+  <PawnArrived>{PAWN_nameDef} has arrived.</PawnArrived>
+
+</LanguageData>
