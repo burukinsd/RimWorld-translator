@@ -1,9 +1,10 @@
 """The `rimtrans` CLI entry point.
 
-Registers every subcommand from `ARCHITECTURE.md` §10 now, as a stub, so
-the command surface is fixed early and later Epics fill in behavior
-instead of designing it. Each stub identifies the Epic that owns its real
-implementation, per issue #16's out-of-scope mapping.
+Registers every subcommand from `ARCHITECTURE.md` §10, most still as a
+stub identifying the Epic that owns their real implementation (issue
+#16). `translate`/`build` are wired to the walking-skeleton pipeline
+(issue #73): single mod, `Keyed`-only, pass-through provider — their
+full scope remains Epic #5/#8's job.
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ from typing import Annotated
 import typer
 
 from rimtrans.config.loader import load_config
-from rimtrans.errors import ConfigError
+from rimtrans.errors import ConfigError, FatalError
 from rimtrans.log import configure_logging
+from rimtrans.pipeline import run_build, run_translate
 
 app = typer.Typer(
     name="rimtrans",
@@ -28,16 +30,18 @@ app = typer.Typer(
 )
 
 # command -> (owning Epic number, Epic title), per issue #16's mapping.
+# 'translate'/'build' are implemented at walking-skeleton scope (issue #73)
+# and no longer stub through this map to their full-scope owning Epic.
 _OWNING_EPIC: dict[str, tuple[int, str]] = {
     "scan": (2, "RimWorld Localization Extraction"),
     "diff": (2, "RimWorld Localization Extraction"),
-    "translate": (5, "LLM Providers & Hybrid Routing"),
     "validate": (6, "Validation & QA"),
-    "build": (8, "Translation Mod Generation"),
     "report": (9, "CLI & Reporting"),
     "glossary": (3, "Translation Memory & Glossary"),
     "benchmark": (10, "Model Benchmark"),
 }
+
+DEFAULT_OUTPUT_DIR = Path("./output")
 
 
 def _not_implemented(command: str) -> None:
@@ -83,9 +87,39 @@ def diff() -> None:
     _not_implemented("diff")
 
 
-@app.command(help="Run the hybrid translation pipeline (respects router policy).")
-def translate() -> None:
-    _not_implemented("translate")
+ModPathOption = Annotated[
+    Path,
+    typer.Option(
+        "--mod-path",
+        help="Path to a single local mod directory to translate (walking-skeleton scope).",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+    ),
+]
+OutputOption = Annotated[
+    Path,
+    typer.Option("--output", "-o", help="Output directory for pipeline state and the built mod."),
+]
+
+
+@app.command(
+    help=(
+        "Run the translation pipeline (walking-skeleton scope: single mod, Keyed-only, "
+        "pass-through provider; full hybrid routing is Epic #5)."
+    )
+)
+def translate(mod_path: ModPathOption, output: OutputOption = DEFAULT_OUTPUT_DIR) -> None:
+    try:
+        result = run_translate(mod_path, output)
+    except FatalError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(
+        f"Translated {len(result.results)} Keyed string(s) from '{result.mod.mod_id}' "
+        f"({result.passed_count} passed validation)."
+    )
 
 
 @app.command(help="Re-run validation gates over current Translation Memory state.")
@@ -93,9 +127,25 @@ def validate() -> None:
     _not_implemented("validate")
 
 
-@app.command(help="Generate the standalone translation mod.")
-def build() -> None:
-    _not_implemented("build")
+@app.command(
+    help=(
+        "Generate the standalone translation mod (walking-skeleton scope: single mod, "
+        "Keyed-only tree + basic About.xml; full scope is Epic #8). Requires a prior "
+        "'rimtrans translate' run against the same --output directory."
+    )
+)
+def build(output: OutputOption = DEFAULT_OUTPUT_DIR) -> None:
+    try:
+        result = run_build(output)
+    except FatalError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(
+        f"Generated '{result.output_mod_dir}' with {result.emitted_count} Keyed string(s).\n"
+        f"  {result.keyed_path}\n"
+        f"  {result.about_path}"
+    )
 
 
 @app.command(help="Human-readable coverage/cost/quality report.")
